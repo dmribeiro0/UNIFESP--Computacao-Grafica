@@ -1,5 +1,5 @@
 const canvas = document.getElementById('canvas');
-const gl = canvas.getContext('webgl2');
+const gl = canvas.getContext("webgl2",{preserveDrawingBuffer:true});
 
 if (!gl) {
     throw new Error("WebGL 2 não é suportado.");
@@ -247,7 +247,10 @@ function convertCoordinatesToCanvas(x, y) {
     return [canvasX, canvasY];
 }
 
-function drawPoints(r = 1.0, g = 0.0, b = 0.0, size = 10.0) {
+function drawPoint(x, y, r = 1.0, g = 0.0, b = 0.0, size = 10.0) {
+    const [webglX, webglY] = convertCoordinatesToWebGl2(x, y);
+    const vertices = new Float32Array([webglX, webglY]);
+
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     gl.bufferData(
         gl.ARRAY_BUFFER,
@@ -255,31 +258,32 @@ function drawPoints(r = 1.0, g = 0.0, b = 0.0, size = 10.0) {
         gl.STATIC_DRAW
     );
 
-    colors = [];
-    for (let i = 0; i < vertices.length / 2; i++) {
-        colors.push(r, g, b);
-    }
+    colors = new Float32Array([r, g, b]);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, colorsBuffer);
     gl.bufferData(
         gl.ARRAY_BUFFER,
-        new Float32Array(colors),
+        colors,
         gl.STATIC_DRAW
     );
 
-    pointSizes = [];
-    for (let i = 0; i < vertices.length / 2; i++) {
-        pointSizes.push(size); // Point size
-    }
+    pointSizes = new Float32Array([size]);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, pointSizesBuffer);
     gl.bufferData(
         gl.ARRAY_BUFFER,
-        new Float32Array(pointSizes),
+        pointSizes,
         gl.STATIC_DRAW
     );
 
-    drawScene();
+    drawScene(pointCount = 1);
+}
+
+function drawTriangle (x1, y1, x2, y2, x3, y3, r = 1.0, g = 0.0, b = 0.0, size = 10.0) {
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    Bresenham(x1, y1, x2, y2, r, g, b, size);
+    Bresenham(x2, y2, x3, y3, r, g, b, size);
+    Bresenham(x1, y1, x3, y3, r, g, b, size);
 }
 
 // --------------------------------------------------
@@ -293,8 +297,6 @@ function Bresenham(x1, y1, x2, y2) {
     x2 = Math.round(x2);
     y2 = Math.round(y2);
 
-    let points = [];
-
     let dx = Math.abs(x2 - x1);
     let dy = Math.abs(y2 - y1);
 
@@ -307,8 +309,7 @@ function Bresenham(x1, y1, x2, y2) {
     let y = y1;
 
     while (true) {
-        let [webglX, webglY] = convertCoordinatesToWebGl2(x, y);
-        points.push(webglX, webglY);
+        drawPoint(x, y, defaultColor[0], defaultColor[1], defaultColor[2], defaultPointSize);
 
         if (x === x2 && y === y2) break; // reached the end point
 
@@ -323,8 +324,6 @@ function Bresenham(x1, y1, x2, y2) {
             y += sy;
         }
     }
-
-    return new Float32Array(points);
 }
 
 // --------------------------------------------------
@@ -332,103 +331,337 @@ function Bresenham(x1, y1, x2, y2) {
 // --------------------------------------------------
 
 let canvasMousePosition = { x: 0, y: 0 };
+let x1 = 300, y1 = 300, x2 = 300, y2 = 300, x3 = 300, y3 = 300;
 let counter = 0;
 
+// Função para retas!
 function mouseClickRetas(e) {
+    gl.clear(gl.COLOR_BUFFER_BIT);
     getMousePosition(e);
-    let [webglX, webglY] = convertCoordinatesToWebGl2(
-        canvasMousePosition.x,
-        canvasMousePosition.y
-    )
 
     if (counter % 2 === 0) {
         // update the first point
-        vertices = new Float32Array([
-            webglX, webglY,
-            vertices[vertices.length - 2], vertices[vertices.length - 1]
-        ]);
+        x1 = canvasMousePosition.x;
+        y1 = canvasMousePosition.y;
+        Bresenham(
+            x1, 
+            y1, 
+            x2, 
+            y2,
+            defaultColor[0], 
+            defaultColor[1], 
+            defaultColor[2], 
+            defaultPointSize 
+        );
     } else {
         // update the second point
-        vertices = new Float32Array([
-            vertices[0], vertices[1],
-            webglX, webglY
-        ]);
+        x2 = canvasMousePosition.x;
+        y2 = canvasMousePosition.y;
+        Bresenham(
+            x1, 
+            y1, 
+            x2,
+            y2,
+            defaultColor[0], 
+            defaultColor[1], 
+            defaultColor[2], 
+            defaultPointSize 
+        );
     }
-
-    // Calculate points in between the two points using the Bresenham's line algorithm
-    let [x1, y1] = convertCoordinatesToCanvas(vertices[0], vertices[1]);
-    let [x2, y2] = convertCoordinatesToCanvas(vertices[2], vertices[3]);
-    vertices = Bresenham(
-        x1, y1,
-        x2, y2
-    );
-
-    drawPoints(defaultColor[0], defaultColor[1], defaultColor[2], defaultPointSize);
 
     counter++;
 }
 
 canvas.addEventListener('mousedown', mouseClickRetas);
 
+// Função para triangulos!
 function mouseClickTriangulos(e) {
+    gl.clear(gl.COLOR_BUFFER_BIT);
     getMousePosition(e);
-    let [webglX, webglY] = convertCoordinatesToWebGl2(
-        canvasMousePosition.x,
-        canvasMousePosition.y
-    );
+
+    if (counter % 3 === 0) {
+        // update the first point
+        x1 = canvasMousePosition.x;
+        y1 = canvasMousePosition.y;
+        drawTriangle(
+            x1, 
+            y1,
+            x2, 
+            y2,
+            x3, 
+            y3,
+            defaultColor[0], 
+            defaultColor[1], 
+            defaultColor[2], 
+            defaultPointSize 
+        );
+    } else if (counter % 3 === 1) {
+        // update the second point
+        x2 = canvasMousePosition.x;
+        y2 = canvasMousePosition.y;
+        drawTriangle(
+            x1, 
+            y1,
+            x2, 
+            y2,
+            x3, 
+            y3,
+            defaultColor[0], 
+            defaultColor[1], 
+            defaultColor[2], 
+            defaultPointSize 
+        );
+    } else {
+        // update the third point
+        x3 = canvasMousePosition.x;
+        y3 = canvasMousePosition.y;
+        drawTriangle(
+            x1, 
+            y1,
+            x2,
+            y2,
+            x3, 
+            y3,
+            defaultColor[0], 
+            defaultColor[1], 
+            defaultColor[2], 
+            defaultPointSize 
+        );
+    }
+
+    counter++;
 }
 
 // --------------------------------------------------
 // Keyboard Interaction
 // --------------------------------------------------
 
+let mode = 'r'; // Default mode is 'retas'
+
 function handleKeyPress(e) {
     if (e.key === 'r' || e.key === 'R') {
         // Mode 'retas'
+        mode = 'r';
         canvas.removeEventListener('mousedown', mouseClickTriangulos);
         canvas.addEventListener('mousedown', mouseClickRetas);
     }
     else if (e.key === 't' || e.key === 'T') {
         // Mode 'triangulos'
+        mode = 't';
         canvas.removeEventListener('mousedown', mouseClickRetas);
         canvas.addEventListener('mousedown', mouseClickTriangulos);
     }
     else if(e.key === 'ArrowUp') {
         // Increase point size
         defaultPointSize += 1.0;
-        drawPoints(defaultColor[0], defaultColor[1], defaultColor[2], defaultPointSize);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        if (mode === 'r') {
+            Bresenham(
+                x1, 
+                y1, 
+                x2, 
+                y2,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        } else {
+            drawTriangle(
+                x1, 
+                y1,
+                x2, 
+                y2,
+                x3, 
+                y3,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        }
     }
     else if(e.key === 'ArrowDown') {
         // Decrease point size
+        gl.clear(gl.COLOR_BUFFER_BIT);
         if (defaultPointSize > 1.0) {
             defaultPointSize -= 1.0;
         }
-        drawPoints(defaultColor[0], defaultColor[1], defaultColor[2], defaultPointSize);
+        if (mode === 'r') {
+            Bresenham(
+                x1, 
+                y1, 
+                x2, 
+                y2,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        } else {
+            drawTriangle(
+                x1,
+                y1,
+                x2, 
+                y2,
+                x3, 
+                y3,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        }
     }
     else if (e.key === '1')  {
         // Change color to red
+        gl.clear(gl.COLOR_BUFFER_BIT);
         defaultColor = [1.0, 0.0, 0.0];
-        drawPoints(defaultColor[0], defaultColor[1], defaultColor[2], defaultPointSize);
+        if (mode === 'r') {
+            Bresenham(
+                x1, 
+                y1, 
+                x2, 
+                y2,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        } else {
+            drawTriangle(
+                x1, 
+                y1,
+                x2, 
+                y2,
+                x3, 
+                y3,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        }
     } 
     else if (e.key === '2') {
         // Change color to green
+        gl.clear(gl.COLOR_BUFFER_BIT);
         defaultColor = [0.0, 1.0, 0.0];
-        drawPoints(defaultColor[0], defaultColor[1], defaultColor[2], defaultPointSize);
+        if (mode === 'r') {
+            Bresenham(
+                x1, 
+                y1, 
+                x2, 
+                y2,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        } else {
+            drawTriangle(
+                x1, 
+                y1,
+                x2, 
+                y2,
+                x3, 
+                y3,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        }
     }
     else if (e.key === '3') {
         // Change color to blue
+        gl.clear(gl.COLOR_BUFFER_BIT);
         defaultColor = [0.0, 0.0, 1.0];
-        drawPoints(defaultColor[0], defaultColor[1], defaultColor[2], defaultPointSize);
+        if (mode === 'r') {
+            Bresenham(
+                x1, 
+                y1, 
+                x2, 
+                y2,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        } else {
+            drawTriangle(
+                x1, 
+                y1,
+                x2, 
+                y2,
+                x3, 
+                y3,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        }
     }
     else if (e.key === '4') {
         // Change color to yellow
+        gl.clear(gl.COLOR_BUFFER_BIT);
         defaultColor = [1.0, 1.0, 0.0];
-        drawPoints(defaultColor[0], defaultColor[1], defaultColor[2], defaultPointSize);
+        if (mode === 'r') {
+            Bresenham(
+                x1, 
+                y1, 
+                x2, 
+                y2,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        } else {
+            drawTriangle(
+                x1, 
+                y1,
+                x2, 
+                y2,
+                x3, 
+                y3,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        }
     }
     else if (e.key === '5') {
         // Change color to magenta
+        gl.clear(gl.COLOR_BUFFER_BIT);
         defaultColor = [1.0, 0.0, 1.0];
-        drawPoints(defaultColor[0], defaultColor[1], defaultColor[2], defaultPointSize);
+        if (mode === 'r') {
+            Bresenham(
+                x1, 
+                y1, 
+                x2, 
+                y2,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        } else {
+            drawTriangle(
+                x1, 
+                y1,
+                x2, 
+                y2,
+                x3, 
+                y3,
+                defaultColor[0], 
+                defaultColor[1], 
+                defaultColor[2], 
+                defaultPointSize 
+            );
+        }
     }
 }
 
@@ -447,13 +680,12 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 // DRAW
 // --------------------------------------------------
 
-function drawScene(){
-    gl.clear(gl.COLOR_BUFFER_BIT);
+function drawScene(pointCount = vertices.length / 2) {
     gl.useProgram(program);
     gl.drawArrays(
         gl.POINTS,
         0,
-        vertices.length / 2
+        pointCount
     );
 }
 
