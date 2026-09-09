@@ -341,20 +341,45 @@ function drawBolaCentro(){
 // PARÂMETROS ANIMAÇÃO
 // --------------------------------------------------
 
+let isMovingUp_BE = false;
+let isMovingDown_BE = false;
+let isMovingUp_BD = false;
+let isMovingDown_BD = false;
 let tyBE = 0.0;
 let tyBD = 0.0;
-let tyBE_offset = 0.1;
-let tyBD_offset = 0.1;
+let tyBE_offset = 0.05;
+let tyBD_offset = 0.05;
 let txBola = 0.0;
 let tyBola = 0.0;
-let txBola_offset = 0.005;
-let tyBola_offset = 0.005;
+let txBola_offset = 0.01;
+let tyBola_offset = 0.01;
 let overlapX = 0.0;
 let overlapY = 0.0;
 
 // Overlap handles corner collisions
 function atualizaAnimacao(){
+    // Handle Paddle Movement
+
+    if (isMovingUp_BE && tyBE + tyBE_offset <= 0.8) {
+        tyBE += tyBE_offset;
+    }
+
+    if (isMovingDown_BE && tyBE - tyBE_offset >= -0.8) {
+        tyBE -= tyBE_offset;
+    }
+
+    if (isMovingUp_BD && tyBD + tyBD_offset <= 0.8) {
+        tyBD += tyBD_offset;
+    }
+
+    if (isMovingDown_BD && tyBD - tyBD_offset >= -0.8) {
+        tyBD -= tyBD_offset;
+    }
+
+    // Handle Ball Movement
     txBola += txBola_offset;
+
+    // Paddle Collision - Right Paddle
 
     overlapX = txBola - 0.8;
 
@@ -371,6 +396,8 @@ function atualizaAnimacao(){
         txBola_offset = -txBola_offset;
     }
 
+    // Paddle Collision - Left Paddle
+
     overlapX = Math.abs(txBola + 0.8); // txBola - (-0.8) = txBola + 0.8
 
     if(txBola < -0.8 && tyBola < tyBE + 0.2 && tyBola > tyBE - 0.2) {
@@ -386,16 +413,21 @@ function atualizaAnimacao(){
         txBola_offset = -txBola_offset;
     }
 
+    // Wall Collision
+    // ---- Back wall
     if(txBola > 0.9 || txBola<-0.9) {
         // txBola_offset = -txBola_offset;
         txBola = 0.0;
         tyBola = 0.0;
     }
-        
+    
+    // ---- Side wall
     tyBola += tyBola_offset;
+
     if(tyBola > 1.0 || tyBola<-1.0)
         tyBola_offset = -tyBola_offset;
 
+    // Update transformation matrixes
     MbolaCentro = m3.translation(txBola,tyBola);
     MbarraEsquerda = m3.translation(-0.9, tyBE);
     MbarraDireita = m3.translation(0.9, tyBD);
@@ -408,24 +440,33 @@ function atualizaAnimacao(){
 document.addEventListener("keydown", function(event) {
     switch(event.key) {
         case "w":
-            if (tyBE + tyBE_offset <= 0.8)
-                tyBE += tyBE_offset;
-            atualizaAnimacao();
+            isMovingUp_BE = true;
             break;
         case "s":
-            if (tyBE - tyBE_offset >= -0.8)
-                tyBE -= tyBE_offset;
-            atualizaAnimacao();
+            isMovingDown_BE = true;
             break;
         case "ArrowUp":
-            if (tyBD + tyBD_offset <= 0.8)
-                tyBD += tyBD_offset;
-            atualizaAnimacao();
+            isMovingUp_BD = true;
             break;
         case "ArrowDown":
-            if (tyBD - tyBD_offset >= -0.8)
-                tyBD -= tyBD_offset;
-            atualizaAnimacao();
+            isMovingDown_BD = true;
+            break;
+    }
+});
+
+document.addEventListener("keyup", function(event) {
+    switch(event.key) {
+        case "w":
+            isMovingUp_BE = false;
+            break;
+        case "s":
+            isMovingDown_BE = false;
+            break;
+        case "ArrowUp":
+            isMovingUp_BD = false;
+            break;
+        case "ArrowDown":
+            isMovingDown_BD = false;
             break;
     }
 });
