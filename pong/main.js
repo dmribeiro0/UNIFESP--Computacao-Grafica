@@ -347,16 +347,41 @@ let isMovingUp_BD = false;
 let isMovingDown_BD = false;
 let tyBE = 0.0;
 let tyBD = 0.0;
-let tyBE_offset = 0.05;
-let tyBD_offset = 0.05;
+let tyBE_offset = 0.02;
+let tyBD_offset = 0.02;
 let txBola = 0.0;
 let tyBola = 0.0;
 let txBola_offset = 0.01;
 let tyBola_offset = 0.01;
-let overlapX = 0.0;
-let overlapY = 0.0;
+// handles collision
+let closestX, closestY, edgeLeft, edgeRight, edgeBottom, edgeTop;
 
-// Overlap handles corner collisions
+const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
+
+function checkPaddleCollision(
+    ballX, 
+    ballY, 
+    radius = 0.05, 
+    paddleX, 
+    paddleY, 
+    halfWidth = 0.05, 
+    halfHeight = 0.2
+    ) {
+    edgeLeft = paddleX - halfWidth;
+    edgeRight = paddleX + halfWidth;
+    edgeTop = paddleY + halfHeight;
+    edgeBottom = paddleY - halfHeight;
+
+    closestX = clamp(ballX, edgeLeft, edgeRight);
+    closestY = clamp(ballY, edgeBottom, edgeTop);
+
+    let dx = ballX - closestX;
+    let dy = ballY - closestY;
+    let distanceSquared = dx*dx + dy*dy;
+
+    return distanceSquared < radius*radius;
+}
+
 function atualizaAnimacao(){
     // Handle Paddle Movement
 
@@ -378,53 +403,46 @@ function atualizaAnimacao(){
 
     // Handle Ball Movement
     txBola += txBola_offset;
+    tyBola += tyBola_offset;
 
     // Paddle Collision - Right Paddle
 
-    overlapX = txBola - 0.8;
-
-    if(txBola > 0.8 && tyBola < tyBD + 0.2 && tyBola > tyBD - 0.2) {
-        if (tyBola > tyBD) {
-            overlapY = (tyBD + 0.2) - tyBola;
-            if (overlapX > overlapY)
-                tyBola_offset = -tyBola_offset;
-        } else {
-            overlapY = tyBola - (tyBD - 0.2);
-            if (overlapX > overlapY)
-                tyBola_offset = -tyBola_offset;
+    if (checkPaddleCollision(txBola, tyBola, 0.05, 0.9, tyBD, 0.05, 0.2)) {
+        txBola_offset = -txBola_offset
+        txBola = edgeLeft - 0.05 - 0.001 // prevents jittering
+        if (closestY == edgeTop) {
+            tyBola_offset = -tyBola_offset;
+            tyBola = edgeTop + 0.05 + 0.001;
+        } else if (closestY == edgeBottom) {
+            tyBola_offset = -tyBola_offset;
+            tyBola = edgeBottom - 0.05 - 0.001;
         }
-        txBola_offset = -txBola_offset;
     }
 
     // Paddle Collision - Left Paddle
 
-    overlapX = Math.abs(txBola + 0.8); // txBola - (-0.8) = txBola + 0.8
-
-    if(txBola < -0.8 && tyBola < tyBE + 0.2 && tyBola > tyBE - 0.2) {
-        if (tyBola > tyBE) {
-            overlapY = (tyBE + 0.2) - tyBola;
-            if (overlapX > overlapY)
-                tyBola_offset = -tyBola_offset;
-        } else {
-            overlapY = tyBola - (tyBE - 0.2);
-            if (overlapX > overlapY)
-                tyBola_offset = -tyBola_offset;
+    if (checkPaddleCollision(txBola, tyBola, 0.05, -0.9, tyBE, 0.05, 0.2)) {
+        txBola_offset = -txBola_offset
+        txBola = edgeRight + 0.05 + 0.001 // prevents jittering
+        if (closestY == edgeTop) {
+            tyBola_offset = -tyBola_offset;
+            tyBola = edgeTop + 0.05 + 0.001;
+        } else if (closestY == edgeBottom) {
+            tyBola_offset = -tyBola_offset;
+            tyBola = edgeBottom - 0.05 - 0.001;
         }
-        txBola_offset = -txBola_offset;
     }
 
     // Wall Collision
     // ---- Back wall
-    if(txBola > 0.9 || txBola<-0.9) {
+    if(txBola + 0.05 > 0.9 || txBola - 0.05 < -0.9) {
         // txBola_offset = -txBola_offset;
         txBola = 0.0;
         tyBola = 0.0;
     }
     
     // ---- Side wall
-    tyBola += tyBola_offset;
-
-    if(tyBola > 1.0 || tyBola<-1.0)
+    if(tyBola + 0.05 > 1.0 || tyBola - 0.05 < -1.0)
         tyBola_offset = -tyBola_offset;
 
     // Update transformation matrixes
