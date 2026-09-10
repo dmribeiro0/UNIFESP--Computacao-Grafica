@@ -474,8 +474,10 @@ function atualizaAnimacao(){
         txBola = edgeLeft - 0.05 - 0.001 // prevents jittering
         if (closestY == edgeTop) {
             tyBola_offset = -tyBola_offset;
+            tyBola = edgeTop + 0.05 + 0.001;
         } else if (closestY == edgeBottom) {
             tyBola_offset = -tyBola_offset;
+            tyBola = edgeBottom - 0.05 - 0.001;
         }
     }
 
@@ -495,13 +497,13 @@ function atualizaAnimacao(){
 
     // Wall Collision
     // ---- Back wall (scoring)
-    if (txBola - 0.05 < -0.9) {
+    if (txBola - 0.05 < -1.0) {
         // ball got past the left paddle -> right player scores
         scoreBD += 1;
         updateScoreDisplay();
         checkForWinner();
         if (gameState === "playing") resetBall("left");
-    } else if (txBola + 0.05 > 0.9) {
+    } else if (txBola + 0.05 > 1.0) {
         // ball got past the right paddle -> left player scores
         scoreBE += 1;
         updateScoreDisplay();
