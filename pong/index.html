@@ -4,10 +4,190 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pong</title>
-    <script src="m3.js" defer></script>
-    <script src="main.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060a;
+            --line: #1c1c2a;
+            --accent: #ff2f92;
+            --accent-dim: #7a1850;
+            --left: #35e08a;
+            --right: #4aa8ff;
+            --text: #eef0f5;
+            --muted: #565c6b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            background:
+                radial-gradient(circle at 50% -10%, #14142a 0%, transparent 60%),
+                var(--bg);
+            color: var(--text);
+            font-family: 'Press Start 2P', monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .arcade {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 28px 16px;
+        }
+
+        h1.title {
+            margin: 0;
+            font-size: 26px;
+            letter-spacing: 8px;
+            text-shadow: 0 0 6px var(--accent), 0 0 26px var(--accent-dim);
+        }
+
+        .hud {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 28px;
+            width: 100%;
+            max-width: 600px;
+            font-size: 22px;
+        }
+
+        .hud .score-left {
+            color: var(--left);
+            text-shadow: 0 0 10px var(--left);
+        }
+
+        .hud .score-right {
+            color: var(--right);
+            text-shadow: 0 0 10px var(--right);
+        }
+
+        .hud .divider {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .stage {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            max-width: 92vw;
+            aspect-ratio: 1 / 1;
+            border: 2px solid var(--line);
+            box-shadow: 0 0 0 1px #000, 0 0 30px rgba(255, 47, 146, 0.14), inset 0 0 70px rgba(74, 168, 255, 0.05);
+            background: #000;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .center-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            border-left: 2px dashed #24243a;
+            pointer-events: none;
+        }
+
+        .scanlines {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(255, 255, 255, 0.035) 0px,
+                rgba(255, 255, 255, 0.035) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            mix-blend-mode: overlay;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            background: rgba(4, 4, 8, 0.86);
+            text-align: center;
+            padding: 24px;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay h2 {
+            margin: 0;
+            font-size: 20px;
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent);
+        }
+
+        .overlay p {
+            margin: 0;
+            font-size: 10px;
+            line-height: 2.1;
+            color: #aab0bf;
+            max-width: 360px;
+        }
+
+        .overlay .prompt {
+            font-size: 11px;
+            color: var(--text);
+            animation: blink 1.1s steps(1) infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+    </style>
 </head>
 <body>
-    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="arcade">
+        <h1 class="title">PONG</h1>
+
+        <div class="hud">
+            <span class="score-left" id="scoreLeft">0</span>
+            <span class="divider">first to 5</span>
+            <span class="score-right" id="scoreRight">0</span>
+        </div>
+
+        <div class="stage">
+            <canvas id="canvas" width="600" height="600"></canvas>
+            <div class="center-line"></div>
+            <div class="scanlines"></div>
+
+            <div class="overlay" id="startScreen">
+                <h2>Press space to start</h2>
+                <p>W and S move the left paddle. Up and Down move the right paddle. First player to 5 points wins.</p>
+            </div>
+
+            <div class="overlay hidden" id="gameOverScreen">
+                <h2 id="winnerText">Player wins</h2>
+                <p class="prompt">Press space to play again</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="m3.js" defer></script>
+    <script src="main.js" defer></script>
 </body>
 </html>

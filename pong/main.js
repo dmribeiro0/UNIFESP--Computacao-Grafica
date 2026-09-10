@@ -40,19 +40,19 @@ function verticesBola(){
 let verticesBarraDireita = verticesBarra();
 
 let corBarraDireita = new Float32Array([
-    0.0, 0.0, 1.0,
+    0.29, 0.66, 1.0,
 ]);
 
 let verticesBarraEsquerda = verticesBarra();
 
 let corBarraEsquerda = new Float32Array([
-    0.0, 1.0, 0.0,
+    0.21, 0.88, 0.54,
 ]);
 
 let verticesBolaCentro = verticesBola();
 
 let corBolaCentro = new Float32Array([
-    1.0, 0.0, 0.0,
+    1.0, 0.32, 0.32,
 ]);
 
 // --------------------------------------------------
@@ -193,7 +193,7 @@ const transformLocation =
 // LIMPAR TELA
 // --------------------------------------------------
 
-gl.clearColor(0.1, 0.1, 0.1, 1.0);
+gl.clearColor(0, 0, 0, 1.0);
 
 gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -205,9 +205,11 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 const numComponents = 2;
 
 function drawScene(){
-    
-    atualizaAnimacao();
 
+    if (gameState === "playing") {
+        atualizaAnimacao();
+    }
+    
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(program);
     drawBarraEsquerda();
@@ -338,6 +340,66 @@ function drawBolaCentro(){
 }
 
 // --------------------------------------------------
+// ESTADO DO JOGO
+// --------------------------------------------------
+ 
+const WINNING_SCORE = 5;
+ 
+let gameState = "start"; // "start" | "playing" | "gameover"
+let scoreBE = 0; // pontuação do jogador esquerdo (ponto quando a bola passa pela direita)
+let scoreBD = 0; // pontuação do jogador direito (ponto quando a bola passa pela esquerda)
+ 
+const scoreLeftEl = document.getElementById("scoreLeft");
+const scoreRightEl = document.getElementById("scoreRight");
+const startScreenEl = document.getElementById("startScreen");
+const gameOverScreenEl = document.getElementById("gameOverScreen");
+const winnerTextEl = document.getElementById("winnerText");
+ 
+function updateScoreDisplay(){
+    scoreLeftEl.textContent = scoreBE;
+    scoreRightEl.textContent = scoreBD;
+}
+ 
+function resetBall(directionTowards){
+    txBola = 0.0;
+    tyBola = 0.0;
+ 
+    // serve towards whoever just conceded the point; random-ish vertical angle
+    txBola_offset = directionTowards === "left" ? -Math.abs(txBola_offset) : Math.abs(txBola_offset);
+    tyBola_offset = (Math.random() < 0.5 ? -1 : 1) * Math.abs(tyBola_offset);
+}
+ 
+function resetMatch(){
+    scoreBE = 0;
+    scoreBD = 0;
+    tyBE = 0.0;
+    tyBD = 0.0;
+    updateScoreDisplay();
+    resetBall(Math.random() < 0.5 ? "left" : "right");
+}
+ 
+function startGame(){
+    resetMatch();
+    startScreenEl.classList.add("hidden");
+    gameOverScreenEl.classList.add("hidden");
+    gameState = "playing";
+}
+ 
+function endGame(winnerLabel){
+    gameState = "gameover";
+    winnerTextEl.textContent = winnerLabel + " wins";
+    gameOverScreenEl.classList.remove("hidden");
+}
+ 
+function checkForWinner(){
+    if (scoreBE >= WINNING_SCORE) {
+        endGame("Left player");
+    } else if (scoreBD >= WINNING_SCORE) {
+        endGame("Right player");
+    }
+}
+
+// --------------------------------------------------
 // PARÂMETROS ANIMAÇÃO
 // --------------------------------------------------
 
@@ -412,10 +474,8 @@ function atualizaAnimacao(){
         txBola = edgeLeft - 0.05 - 0.001 // prevents jittering
         if (closestY == edgeTop) {
             tyBola_offset = -tyBola_offset;
-            tyBola = edgeTop + 0.05 + 0.001;
         } else if (closestY == edgeBottom) {
             tyBola_offset = -tyBola_offset;
-            tyBola = edgeBottom - 0.05 - 0.001;
         }
     }
 
@@ -434,11 +494,19 @@ function atualizaAnimacao(){
     }
 
     // Wall Collision
-    // ---- Back wall
-    if(txBola + 0.05 > 0.9 || txBola - 0.05 < -0.9) {
-        // txBola_offset = -txBola_offset;
-        txBola = 0.0;
-        tyBola = 0.0;
+    // ---- Back wall (scoring)
+    if (txBola - 0.05 < -0.9) {
+        // ball got past the left paddle -> right player scores
+        scoreBD += 1;
+        updateScoreDisplay();
+        checkForWinner();
+        if (gameState === "playing") resetBall("left");
+    } else if (txBola + 0.05 > 0.9) {
+        // ball got past the right paddle -> left player scores
+        scoreBE += 1;
+        updateScoreDisplay();
+        checkForWinner();
+        if (gameState === "playing") resetBall("right");
     }
     
     // ---- Side wall
@@ -456,6 +524,14 @@ function atualizaAnimacao(){
 // --------------------------------------------------
 
 document.addEventListener("keydown", function(event) {
+    if (event.key === " ") {
+        event.preventDefault();
+        if (gameState === "start" || gameState === "gameover") {
+            startGame();
+        }
+        return;
+    }
+
     switch(event.key) {
         case "w":
             isMovingUp_BE = true;
@@ -494,4 +570,5 @@ document.addEventListener("keyup", function(event) {
 // INÍCIO DO DESENHO
 // --------------------------------------------------
 
+updateScoreDisplay();
 drawScene();
